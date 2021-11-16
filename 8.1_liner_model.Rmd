@@ -96,6 +96,8 @@ broom::tidy(fit)
 
 Let's try **`nesting`**...
 
+inside the `map()`, we prefer to use `.x`, while outside `map()`, you can use `.`
+
 ```{r}
 nyc_airbnb %>% 
   relocate(borough) %>% 
@@ -138,8 +140,44 @@ manhattan_lm_results_df %>%
   filter(str_detect(term, "room_type")) %>% 
   ggplot(aes(x = neighbourhood, y = estimate)) + 
   geom_point() +
-  facet_grid(~term)+
+  facet_grid(~term) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
   
+```
+
+
+## Logistic regression
+
+```{r}
+nyc_airbnb = 
+  nyc_airbnb %>% 
+    mutate(
+      expensive_apt = as.numeric(price > 500)  ## give > 500 as 1, otherwise, 0
+    )
+```
+
+Let's fit a logistic regression for the binary outcome.
+
+```{r}
+logistic_fit =   
+  glm(
+    expensive_apt ~ stars + borough, 
+    data = nyc_airbnb,
+    family = binomial()
+    )
+
+logistic_fit %>% 
+  broom::tidy() %>% 
+  mutate(
+    term = str_replace(term, "borough", "Borough:"),
+    estimate = exp(estimate)
+  ) %>% 
+  select(term, OR = estimate, p.value)  ## you can change column name like this!!!!
+```
+
+```{r}
+nyc_airbnb %>% 
+  modelr::add_predictions(logistic_fit) %>% 
+  mutate(pred = boot::inv.logit(pred))
 ```
 
